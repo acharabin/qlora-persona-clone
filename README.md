@@ -23,6 +23,8 @@ This is an experimental project, not a claim that the model reproduces a person'
 | Evaluation | Held-out examples; assistant-only loss; training and validation loss |
 | Logging | TensorBoard |
 
+The dataset is hosted on Hugging Face: [acharabin/AC-persona](https://huggingface.co/datasets/acharabin/AC-persona). The training script, [`sft.py`](sft.py), loads `persona_lora_authentic_only_fixed.jsonl` from this dataset.
+
 The initial dataset was a small collection of personal question-and-answer examples, with responses often much shorter than typical assistant answers. Small datasets make generalization and overfitting important evaluation concerns. Exact dataset composition and final metric values should be documented from the experiment artifacts rather than inferred.
 
 ## Example inference
