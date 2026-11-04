@@ -170,7 +170,11 @@ Run your script:
 uv run python inference.py
 ```
 
-One example generated response from the initial experiment was:
+For the question in [`inference.py`](inference.py):
+
+> What's the most important thing to you?
+
+One generated response from the initial experiment was:
 
 > My family and friends.
 

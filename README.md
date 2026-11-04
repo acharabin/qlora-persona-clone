@@ -27,7 +27,11 @@ The initial dataset was a small collection of personal question-and-answer examp
 
 ## Example inference
 
-One generated response from the persona-tuned model was:
+For the question in [`inference.py`](inference.py):
+
+> What's the most important thing to you?
+
+The persona-tuned model generated:
 
 > My family and friends.
 
