@@ -17,3 +17,6 @@ AC-persona/
 
 # Testing
 test/
+
+# Outputs
+outputs/

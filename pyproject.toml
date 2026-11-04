@@ -7,7 +7,17 @@ authors = [
     { name = "Andrew Charabin", email = "122898165+acharabin@users.noreply.github.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "accelerate>=1.15.0",
+    "bitsandbytes>=0.50.2",
+    "datasets>=5.1.0",
+    "peft>=0.21.2",
+    "safetensors>=0.8.0",
+    "tensorboard>=2.21.0",
+    "torch>=2.15.0",
+    "transformers>=5.22.1",
+    "trl[peft]>=1.17.1",
+]
 
 [project.scripts]
 qlora-persona-clone = "qlora_persona_clone:main"
