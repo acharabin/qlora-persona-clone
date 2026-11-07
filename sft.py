@@ -9,116 +9,43 @@ from transformers import (
 from pathlib import Path
 from transformers.trainer_utils import get_last_checkpoint
 
+from config import config_from_cli
+
+config = config_from_cli()
+
 # Set path
 
-ROOT = Path("/workspace/qlora-persona-clone/qlora-persona-clone")
-OUTPUT_DIR = ROOT / "outputs" / "qwen3-persona-v1"
-CHECKPOINT_DIR = OUTPUT_DIR / "checkpoints" # Load the dataset
+CHECKPOINT_DIR = Path(config["paths"]["checkpoint_dir"])
 
-# Load from Hugging Face
-dataset = load_dataset("acharabin/AC-persona",data_files="persona_lora_authentic_only_fixed.jsonl",split="train")
-
-# Load from Local
-# dataset = load_dataset("json",data_files="./AC-persona/persona_lora_authentic_only_fixed.jsonl",split="train")
+# Load the configured Hugging Face or local dataset
+dataset_config = dict(config["dataset"])
+split_config = {key: dataset_config.pop(key) for key in ("test_size", "seed")}
+dataset = load_dataset(**dataset_config)
 
 # Partition the dataset into train & eval
 
-splits = dataset.train_test_split(
-    test_size=0.2,
-    seed=42,
-)
+splits = dataset.train_test_split(**split_config)
 
 train_dataset = splits["train"]
 eval_dataset = splits["test"]
 
 print(train_dataset[0])
 
-# Model ID
+quantization_options = dict(config["quantization"])
+quantization_options["bnb_4bit_compute_dtype"] = getattr(torch, quantization_options["bnb_4bit_compute_dtype"])
+quantization_config = BitsAndBytesConfig(**quantization_options)
 
-model_id = "Qwen/Qwen3-8B"
-
-# Instantiate Model
-
-quantization_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16,
-    bnb_4bit_use_double_quant=True,
-)
-
+model_options = dict(config["model"])
+model_id = model_options.pop("id")
+model_options["dtype"] = getattr(torch, model_options["dtype"])
 model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    quantization_config=quantization_config,
-    device_map="auto",
-    dtype=torch.bfloat16,
-    # attn_implementation="flash_attention_2"
-    # Reverting to sdpa as flash attention introduces package version dependencies
-    attn_implementation="sdpa"
+    model_id, quantization_config=quantization_config, **model_options
 )
 
-# Set Training Config
-
-training_args = SFTConfig(
-    output_dir=str(OUTPUT_DIR / "checkpoints"),
-
-    # Training
-    num_train_epochs=100,
-    per_device_train_batch_size=2,
-    per_device_eval_batch_size=2,
-    gradient_accumulation_steps=8,
-    learning_rate=1e-4,
-    bf16=True,
-    max_length=512,
-
-    # Dataset processing
-    assistant_only_loss=True,
-
-    # packing=True,
-    # packing_strategy="bfd",
-
-    # Reverting for initial trial
-    packing=False,
-    padding_free=False,
-
-    # Monitoring
-    logging_strategy="steps",
-    logging_steps=1,
-    logging_first_step=True,
-    report_to="tensorboard",
-    run_name="qwen3-persona-v1",
-
-    # Evaluation and checkpoints
-    eval_strategy="epoch",
-    save_strategy="epoch",
-    load_best_model_at_end=True,
-    metric_for_best_model="eval_loss",
-    greater_is_better=False,
-    save_total_limit=2,
-
-    # Below not accepted in package version, will retain thinking tokens which can be dropped at inference time
-    # chat_template_kwargs={"enable_thinking": False}
-)
-
-# print(training_args.per_device_train_batch_size)
-# print(training_args.gradient_accumulation_steps)
-
-peft_config = LoraConfig(
-    r=16,
-    lora_alpha=32,
-    lora_dropout=0.0,
-    target_modules="all-linear",
-    bias="none",
-    task_type="CAUSAL_LM",
-)
-
-# r	16	LoRA rank; reasonable capacity for learning your response patterns
-# lora_alpha	32	Scaling factor, giving alpha/r = 2
-# lora_dropout	0.0	Good starting point; test 0.05 if overfitting
-# target_modules	"all-linear"	Applies LoRA to linear layers throughout the transformer
-# bias	"none"	Keeps bias parameters frozen
-# task_type	"CAUSAL_LM"	Appropriate for Qwen3 autoregressive language modeling
-
-
+training_options = dict(config["training"])
+resume = training_options.pop("resume_from_checkpoint")
+training_args = SFTConfig(output_dir=str(CHECKPOINT_DIR), **training_options)
+peft_config = LoraConfig(**config["lora"])
 
 # Instantiate Trainer
 
@@ -148,7 +75,10 @@ trainer = SFTTrainer(
 
 # Actual training
 
-last_checkpoint = get_last_checkpoint(str(CHECKPOINT_DIR))
+last_checkpoint = (
+    get_last_checkpoint(str(CHECKPOINT_DIR))
+    if resume and CHECKPOINT_DIR.is_dir() else None
+)
 
 print("Resuming from:", last_checkpoint)
 
@@ -159,6 +89,4 @@ metrics = trainer.evaluate()
 print(metrics)
 
 # Save the LoRA adapter
-trainer.save_model(
-    "/workspace/qlora-persona-clone/outputs/qwen3-persona-v1/adapter"
-)
+trainer.save_model(config["paths"]["adapter_dir"])

@@ -5,15 +5,17 @@ from pathlib import Path
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-PROJECT_ROOT = Path(__file__).resolve().parent
-LOG_DIR = PROJECT_ROOT / "outputs"
-EXPORT_DIR = PROJECT_ROOT / "evaluations" / "qwen3-persona-v1"
+from config import config_from_cli
+
+config = config_from_cli()
+LOG_DIR = Path(config["paths"]["log_dir"])
+EXPORT_DIR = Path(config["paths"]["export_dir"])
 
 EXPORT_DIR.mkdir(parents=True, exist_ok=True)
 
 records = []
 
-for event_file in LOG_DIR.rglob("events.out.tfevents*"):
+for event_file in LOG_DIR.rglob(config["export"]["event_pattern"]):
     accumulator = EventAccumulator(str(event_file))
     accumulator.Reload()
 
@@ -49,8 +51,8 @@ for event_file in LOG_DIR.rglob("events.out.tfevents*"):
 
 records.sort(key=lambda r: (r["run"], r["metric"], r["step"]))
 
-json_path = EXPORT_DIR / "tensorboard_metrics.json"
-csv_path = EXPORT_DIR / "tensorboard_metrics.csv"
+json_path = EXPORT_DIR / config["export"]["json_filename"]
+csv_path = EXPORT_DIR / config["export"]["csv_filename"]
 
 with open(json_path, "w", encoding="utf-8") as f:
     json.dump(records, f, indent=2)

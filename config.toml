@@ -1,0 +1,86 @@
+# Relative paths are resolved from this file's directory.
+[paths]
+checkpoint_dir = "outputs/qwen3-persona-v1/checkpoints"
+adapter_dir = "outputs/qwen3-persona-v1/adapter"
+log_dir = "outputs"
+export_dir = "evaluations/qwen3-persona-v1"
+
+[model]
+id = "Qwen/Qwen3-8B"
+dtype = "bfloat16"
+device_map = "auto"
+attn_implementation = "sdpa"
+
+[quantization]
+load_in_4bit = true
+bnb_4bit_quant_type = "nf4"
+bnb_4bit_compute_dtype = "bfloat16"
+bnb_4bit_use_double_quant = true
+
+[dataset]
+path = "acharabin/AC-persona"
+data_files = "persona_lora_authentic_only_fixed.jsonl"
+split = "train"
+test_size = 0.2
+seed = 42
+
+[training]
+resume_from_checkpoint = true
+num_train_epochs = 100
+per_device_train_batch_size = 2
+per_device_eval_batch_size = 2
+gradient_accumulation_steps = 8
+learning_rate = 1e-4
+bf16 = true
+max_length = 512
+assistant_only_loss = true
+packing = false
+padding_free = false
+logging_strategy = "steps"
+logging_steps = 1
+logging_first_step = true
+report_to = "tensorboard"
+run_name = "qwen3-persona-v1"
+eval_strategy = "epoch"
+save_strategy = "epoch"
+load_best_model_at_end = true
+metric_for_best_model = "eval_loss"
+greater_is_better = false
+save_total_limit = 2
+
+[lora]
+r = 16
+lora_alpha = 32
+lora_dropout = 0.0
+target_modules = "all-linear"
+bias = "none"
+task_type = "CAUSAL_LM"
+
+[inference]
+# Change to outputs/qwen3-persona-v1/adapter to use the final saved adapter.
+adapter_path = "outputs/qwen3-persona-v1/checkpoints/checkpoint-30"
+device = "auto"
+cuda_dtype = "float16"
+cpu_dtype = "float32"
+cuda_device_map = "auto"
+cpu_device_map = "cpu"
+skip_special_tokens = true
+messages = [{ role = "user", content = "What's the most important thing to you?" }]
+
+[inference.chat_template]
+tokenize = true
+add_generation_prompt = true
+enable_thinking = false
+return_tensors = "pt"
+return_dict = true
+
+[inference.generation]
+max_new_tokens = 200
+do_sample = false
+temperature = 0.7
+top_p = 0.9
+
+[export]
+event_pattern = "events.out.tfevents*"
+json_filename = "tensorboard_metrics.json"
+csv_filename = "tensorboard_metrics.csv"

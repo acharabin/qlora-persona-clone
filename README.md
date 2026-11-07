@@ -54,6 +54,10 @@ The adapter is a relatively small set of learned weights; **it is not a standalo
 
 See [QUICKSTART.md](QUICKSTART.md) for environment setup, training, TensorBoard, resuming, inference, and exporting historical metrics.
 
+## Configuration
+
+Edit [`config.toml`](config.toml) to configure training, inference, dataset loading, LoRA, quantization, paths, and metrics export. All scripts accept `--config path/to/custom.toml`; relative paths resolve beside that config file. See [QUICKSTART.md](QUICKSTART.md) for details.
+
 ## Suggested repository layout
 
 ```text
@@ -62,7 +66,7 @@ qlora-persona-clone/
 ├── QUICKSTART.md
 ├── pyproject.toml
 ├── uv.lock
-├── train.py
+├── sft.py
 ├── inference.py
 ├── export_tensorboard.py        # optional
 ├── evaluations/                 # versionable metrics and curated examples
@@ -72,7 +76,7 @@ qlora-persona-clone/
         └── adapter/
 ```
 
-The exact data file paths and training script configuration depend on your checkout. The `outputs/` layout above is the intended layout, not a guarantee that every file has already been generated.
+The configured output directories are created when scripts run; generated model files are not included in the repository.
 
 ## Evaluation and next experiments
 
